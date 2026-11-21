@@ -32,6 +32,12 @@ event_id=… published=True processed=1 history_count=1
 event_id=… published=True processed=1 history_count=1
 ```
 
+## Python dependencies
+
+Poetry 2.1.3 manages the Python 3.11 environment. Docker builds install from the committed `poetry.lock`, including the test group so both demo environments can run pytest. Compose and kind users only need the tools listed in their respective setup sections.
+
+For a local Python environment, run `poetry env use 3.11` and `poetry sync --with test`. Use `poetry run` to execute tools in that environment. After changing dependencies, commit both `pyproject.toml` and `poetry.lock`.
+
 ## How the service works
 
 ```mermaid
