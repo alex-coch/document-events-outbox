@@ -1,0 +1,18 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: consumer}
+spec:
+  replicas: 1
+  strategy: {type: Recreate}
+  selector: {matchLabels: {app: consumer}}
+  template:
+    metadata: {labels: {app: consumer}}
+    spec:
+      containers:
+        - name: consumer
+          image: document-events-outbox:demo
+          imagePullPolicy: Never
+          envFrom:
+            - configMapRef: {name: outbox}
+            - secretRef: {name: credentials}
+          command: [python, -m, app.worker, consumer]

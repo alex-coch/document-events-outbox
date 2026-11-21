@@ -1,0 +1,16 @@
+apiVersion: batch/v1
+kind: Job
+metadata: {name: migrate}
+spec:
+  backoffLimit: 8
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: migrate
+          image: document-events-outbox:demo
+          imagePullPolicy: Never
+          envFrom:
+            - configMapRef: {name: outbox}
+            - secretRef: {name: credentials}
+          command: [alembic, upgrade, head]

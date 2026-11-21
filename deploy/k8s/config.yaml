@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata: {name: outbox}
+data:
+  DB_HOST: postgres
+  BROKER_HOST: rabbitmq
+  POSTGRES_USER: outbox
+  POSTGRES_DB: outbox
+  RABBITMQ_DEFAULT_USER: outbox
