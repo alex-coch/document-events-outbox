@@ -1,0 +1,54 @@
+name: document-events-outbox
+x-app: &app
+  build: .
+  image: document-events-outbox:demo
+  environment:
+    DEMO_PASSWORD: local-compose-demo
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: outbox
+      POSTGRES_DB: outbox
+      POSTGRES_PASSWORD: local-compose-demo
+    volumes: [pg:/var/lib/postgresql/data]
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -U outbox]
+      interval: 2s
+      timeout: 3s
+      retries: 40
+  rabbitmq:
+    image: rabbitmq:4-management-alpine
+    hostname: rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: outbox
+      RABBITMQ_DEFAULT_PASS: local-compose-demo
+    volumes: [broker:/var/lib/rabbitmq]
+  migrate:
+    <<: *app
+    command: [alembic, upgrade, head]
+    depends_on:
+      postgres: {condition: service_healthy}
+  api:
+    <<: *app
+    ports: ["127.0.0.1:${OUTBOX_PORT:-18080}:8000"]
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://localhost:8000/ready')"]
+      interval: 3s
+      timeout: 4s
+      retries: 30
+  relay:
+    <<: *app
+    command: [python, -m, app.worker, relay]
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+  consumer:
+    <<: *app
+    command: [python, -m, app.worker, consumer]
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+volumes:
+  pg:
+  broker:

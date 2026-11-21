@@ -1,0 +1,35 @@
+apiVersion: v1
+kind: Service
+metadata: {name: rabbitmq}
+spec:
+  clusterIP: None
+  selector: {app: rabbitmq}
+  ports: [{port: 5672}]
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata: {name: rabbitmq}
+spec:
+  serviceName: rabbitmq
+  replicas: 1
+  selector: {matchLabels: {app: rabbitmq}}
+  template:
+    metadata: {labels: {app: rabbitmq}}
+    spec:
+      containers:
+        - name: rabbitmq
+          image: rabbitmq:4-management-alpine
+          envFrom: [{configMapRef: {name: outbox}}]
+          env:
+            - name: RABBITMQ_DEFAULT_PASS
+              valueFrom: {secretKeyRef: {name: credentials, key: DEMO_PASSWORD}}
+          readinessProbe:
+            exec: {command: [rabbitmq-diagnostics, -q, ping]}
+            periodSeconds: 3
+            timeoutSeconds: 5
+          volumeMounts: [{name: data, mountPath: /var/lib/rabbitmq}]
+  volumeClaimTemplates:
+    - metadata: {name: data}
+      spec:
+        accessModes: [ReadWriteOnce]
+        resources: {requests: {storage: 1Gi}}
