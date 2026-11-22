@@ -1,0 +1,43 @@
+name: Tests & failure demos
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  compose:
+    name: Docker Compose
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Build and start services
+        run: make up
+
+      - name: Run integration tests
+        run: make test
+
+      - name: Verify recovery after a broker outage
+        run: make demo-broker-outage
+
+      - name: Verify idempotent redelivery
+        run: make demo-redelivery
+
+      - name: Print service status and logs on failure
+        if: failure()
+        run: |
+          docker compose ps --all
+          docker compose logs --no-color --tail=100
+
+      - name: Remove the demo stack
+        if: always()
+        run: docker compose down --volumes --remove-orphans
