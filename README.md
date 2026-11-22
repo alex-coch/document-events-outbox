@@ -4,6 +4,8 @@
 
 A FastAPI document service that keeps accepting writes during a RabbitMQ outage. Run two failure experiments to see what happens when a broker goes offline and when a consumer dies **after committing its work but before acknowledging delivery**. Each experiment checks real HTTP responses, PostgreSQL rows and worker logs.
 
+[Read the case study](https://alex-coch.github.io/projects/transactional-outbox/)
+
 ## Failure demo results
 
 | Experiment | Injected fault | Observable evidence |
