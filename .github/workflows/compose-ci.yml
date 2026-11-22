@@ -69,6 +69,8 @@ jobs:
           echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
 
       - name: Create the cluster and deploy the demo
+        env:
+          KIND_IMAGE_PLATFORM: linux/amd64
         run: make k8s-up
 
       - name: Run integration tests in Kubernetes

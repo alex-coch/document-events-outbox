@@ -8,11 +8,26 @@ if kind get clusters | grep -qx "$cluster"; then
 else
   kind create cluster --name "$cluster" --kubeconfig "$KUBECONFIG"
 fi
-docker build -t document-events-outbox:demo .
+if [ -n "${KIND_IMAGE_PLATFORM:-}" ]; then
+  docker build --platform "$KIND_IMAGE_PLATFORM" -t document-events-outbox:demo .
+else
+  docker build -t document-events-outbox:demo .
+fi
 for image in postgres:16-alpine rabbitmq:4-management-alpine; do
   docker image inspect "$image" >/dev/null 2>&1 || docker pull "$image"
 done
-kind load docker-image --name "$cluster" document-events-outbox:demo postgres:16-alpine rabbitmq:4-management-alpine
+set -- document-events-outbox:demo postgres:16-alpine rabbitmq:4-management-alpine
+if [ -n "${KIND_IMAGE_PLATFORM:-}" ]; then
+  # A platform-specific archive avoids missing OCI manifests in Docker's containerd image store.
+  archive=$(mktemp)
+  trap 'rm -f "$archive"' EXIT
+  docker image save --platform "$KIND_IMAGE_PLATFORM" --output "$archive" "$@"
+  kind load image-archive --name "$cluster" "$archive"
+  rm -f "$archive"
+  trap - EXIT
+else
+  kind load docker-image --name "$cluster" "$@"
+fi
 if ! kubectl get secret credentials >/dev/null 2>&1; then
   kubectl create secret generic credentials --from-literal=DEMO_PASSWORD="$(openssl rand -hex 24)"
 fi
