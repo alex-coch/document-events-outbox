@@ -96,6 +96,6 @@ The outage script scales only the broker down and back up. The redelivery script
 
 The PostgreSQL integration suite forces an outbox insert failure and checks document rollback, processes the same event twice, and forces a history write failure to check deduplication rollback. The two end-to-end experiments separately exercise the live HTTP API, broker, relay and consumer.
 
-GitHub Actions runs the tests and both failure demos in Docker Compose on pull requests targeting `main` and pushes to `main`.
+GitHub Actions runs the tests and both failure demos in separate Docker Compose and Kubernetes (kind) jobs on pull requests targeting `main` and pushes to `main`.
 
 `make down` stops Compose and preserves named volumes. `make k8s-down` deletes the dedicated kind cluster and its demo data.
