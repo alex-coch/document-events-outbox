@@ -27,23 +27,6 @@ make down
 
 Run one experiment at a time in this dedicated stack. Each creates a new document, checks its own event ID, and restores the stopped services. Compose serves the API and interactive docs at [localhost:18080/docs](http://localhost:18080/docs). Set `OUTBOX_PORT` to select another host port. The Compose password is for local development. PostgreSQL and RabbitMQ have no published ports.
 
-Example output, with the ID shortened:
-
-```text
-event_id=… published=False processed=0 history_count=0
-event_id=… published=True processed=1 history_count=1
-
-{"action":"committed_before_ack","pod":"first-consumer","event_id":"…","redelivered":false}
-{"action":"duplicate_skipped","pod":"replacement","event_id":"…","redelivered":true}
-event_id=… published=True processed=1 history_count=1
-```
-
-## Python dependencies
-
-Poetry 2.1.3 manages the Python 3.11 environment. Docker builds install from the committed `poetry.lock`, including the test group so both demo environments can run pytest. Compose and kind users only need the tools listed in their respective setup sections.
-
-For a local Python environment, run `poetry env use 3.11` and `poetry sync --with test`. Use `poetry run` to execute tools in that environment. After changing dependencies, commit both `pyproject.toml` and `poetry.lock`.
-
 ## How the service works
 
 ```mermaid
@@ -70,6 +53,25 @@ curl -i http://localhost:18080/documents -H 'Content-Type: application/json' \
 # Copy document_id from the response.
 curl http://localhost:18080/documents/DOCUMENT_ID/history
 ```
+
+## Example output
+
+Event IDs are shortened.
+
+```text
+event_id=… published=False processed=0 history_count=0
+event_id=… published=True processed=1 history_count=1
+
+{"action":"committed_before_ack","pod":"first-consumer","event_id":"…","redelivered":false}
+{"action":"duplicate_skipped","pod":"replacement","event_id":"…","redelivered":true}
+event_id=… published=True processed=1 history_count=1
+```
+
+## Python dependencies
+
+Poetry 2.1.3 manages the Python 3.11 environment. Docker builds install from the committed `poetry.lock`, including the test group so both demo environments can run pytest. Compose and kind users only need the tools listed in their respective setup sections.
+
+For a local Python environment, run `poetry env use 3.11` and `poetry sync --with test`. Use `poetry run` to execute tools in that environment. After changing dependencies, commit both `pyproject.toml` and `poetry.lock`.
 
 ## Run the same experiments on Kubernetes
 
