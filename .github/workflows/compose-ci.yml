@@ -1,4 +1,4 @@
-name: Tests & failure demos
+name: Docker Compose
 
 on:
   pull_request:
@@ -41,59 +41,3 @@ jobs:
       - name: Remove the demo stack
         if: always()
         run: docker compose down --volumes --remove-orphans
-
-  kind:
-    name: Kubernetes (kind)
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      - name: Install kind and kubectl
-        id: kind_tools
-        run: |
-          cd "$RUNNER_TEMP"
-          curl --fail --silent --show-error --location --retry 3 \
-            -o kind https://github.com/kubernetes-sigs/kind/releases/download/v0.33.0/kind-linux-amd64
-          curl --fail --silent --show-error --location --retry 3 \
-            -o kubectl https://dl.k8s.io/release/v1.36.1/bin/linux/amd64/kubectl
-          sha256sum --check <<'CHECKSUMS'
-          aee6151561422756b764a4ae28e7f44cda5af5a9eead3cc9985112b1de8d8e0d  kind
-          629d3f410e09bf49b64ae7079f7f0bda1191efed311f7d37fdbab0ad5b0ec2b7  kubectl
-          CHECKSUMS
-          install -Dm755 kind bin/kind
-          install -Dm755 kubectl bin/kubectl
-          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
-
-      - name: Create the cluster and deploy the demo
-        env:
-          KIND_IMAGE_PLATFORM: linux/amd64
-        run: make k8s-up
-
-      - name: Run integration tests in Kubernetes
-        run: make k8s-test
-
-      - name: Verify recovery after a broker outage in Kubernetes
-        run: make k8s-demo-broker-outage
-
-      - name: Verify idempotent redelivery in Kubernetes
-        run: make k8s-demo-redelivery
-
-      - name: Print Kubernetes status and logs on failure
-        if: failure()
-        run: |
-          if [[ -f .demo/kubeconfig ]]; then
-            export KUBECONFIG="$PWD/.demo/kubeconfig"
-            kubectl --request-timeout=15s get pods,jobs -o wide || true
-            kubectl --request-timeout=15s get events --sort-by=.lastTimestamp || true
-            for workload in job/migrate deploy/api deploy/relay deploy/consumer sts/rabbitmq; do
-              kubectl --request-timeout=15s logs "$workload" --tail=100 || true
-            done
-          fi
-
-      - name: Delete the kind cluster
-        if: always() && steps.kind_tools.outcome == 'success'
-        run: make k8s-down
