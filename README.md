@@ -1,6 +1,7 @@
 # Document events outbox
 
-[![Tests & failure demos](https://github.com/alex-coch/document-events-outbox/actions/workflows/compose-ci.yml/badge.svg?branch=main)](https://github.com/alex-coch/document-events-outbox/actions/workflows/compose-ci.yml)
+[![Docker Compose](https://github.com/alex-coch/document-events-outbox/actions/workflows/compose-ci.yml/badge.svg?branch=main)](https://github.com/alex-coch/document-events-outbox/actions/workflows/compose-ci.yml)
+[![Kubernetes (kind)](https://github.com/alex-coch/document-events-outbox/actions/workflows/kind-ci.yml/badge.svg?branch=main)](https://github.com/alex-coch/document-events-outbox/actions/workflows/kind-ci.yml)
 
 A FastAPI document service that keeps accepting writes during a RabbitMQ outage. Run two failure experiments to see what happens when a broker goes offline and when a consumer dies **after committing its work but before acknowledging delivery**. Each experiment checks real HTTP responses, PostgreSQL rows and worker logs.
 
@@ -96,6 +97,6 @@ The outage script scales only the broker down and back up. The redelivery script
 
 The PostgreSQL integration suite forces an outbox insert failure and checks document rollback, processes the same event twice, and forces a history write failure to check deduplication rollback. The two end-to-end experiments separately exercise the live HTTP API, broker, relay and consumer.
 
-GitHub Actions runs the tests and both failure demos in separate Docker Compose and Kubernetes (kind) jobs on pull requests targeting `main` and pushes to `main`.
+GitHub Actions runs the tests and both failure demos in separate Docker Compose and Kubernetes (kind) workflows on pull requests targeting `main` and pushes to `main`.
 
 `make down` stops Compose and preserves named volumes. `make k8s-down` deletes the dedicated kind cluster and its demo data.
