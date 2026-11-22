@@ -1,8 +1,17 @@
 # Document events outbox
 
+[![Tests & failure demos](https://github.com/alex-coch/document-events-outbox/actions/workflows/compose-ci.yml/badge.svg?branch=main)](https://github.com/alex-coch/document-events-outbox/actions/workflows/compose-ci.yml)
+
 A FastAPI document service that keeps accepting writes during a RabbitMQ outage. Run two failure experiments to see what happens when a broker goes offline and when a consumer dies **after committing its work but before acknowledging delivery**. Each experiment checks real HTTP responses, PostgreSQL rows and worker logs.
 
-## Try it with Docker Compose
+## Failure demo results
+
+| Experiment | Injected fault | Observable evidence |
+| --- | --- | --- |
+| Broker outage | Stop RabbitMQ, then submit a document through the API. | HTTP 201 and a readable document. The outbox row is pending and history is empty. Restarting the broker leads to one published event and one history entry. |
+| Redelivery | Pause a consumer after its database commit, then kill it before it acknowledges the delivery. | The replacement logs the same event ID, `redelivered: true` and `duplicate_skipped`. The database contains one processing record and one history entry. The queue drains. |
+
+## Quick start
 
 Requirements: Docker with Compose v2, Make and a POSIX shell. No host Python installation is required.
 
@@ -15,11 +24,6 @@ make down
 ```
 
 Run one experiment at a time in this dedicated stack. Each creates a new document, checks its own event ID, and restores the stopped services. Compose serves the API and interactive docs at [localhost:18080/docs](http://localhost:18080/docs). Set `OUTBOX_PORT` to select another host port. The Compose password is for local development. PostgreSQL and RabbitMQ have no published ports.
-
-| Experiment | Injected fault | Observable evidence |
-| --- | --- | --- |
-| Broker outage | Stop RabbitMQ, then submit a document through the API. | HTTP 201 and a readable document. The outbox row is pending and history is empty. Restarting the broker leads to one published event and one history entry. |
-| Redelivery | Pause one specific consumer after its database commit. Kill it while the broker still holds the delivery unacknowledged. | The replacement logs the same event ID, `redelivered: true` and `duplicate_skipped`. The database contains one processing record and one history entry. The isolated queue drains. |
 
 Example output, with the ID shortened:
 
@@ -87,5 +91,7 @@ The outage script scales only the broker down and back up. The redelivery script
 ## Tests and cleanup
 
 The PostgreSQL integration suite forces an outbox insert failure and checks document rollback, processes the same event twice, and forces a history write failure to check deduplication rollback. The two end-to-end experiments separately exercise the live HTTP API, broker, relay and consumer.
+
+GitHub Actions runs the tests and both failure demos in Docker Compose on pull requests targeting `main` and pushes to `main`.
 
 `make down` stops Compose and preserves named volumes. `make k8s-down` deletes the dedicated kind cluster and its demo data.
